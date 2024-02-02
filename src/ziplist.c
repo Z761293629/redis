@@ -416,11 +416,42 @@ static zlentry zipEntry(unsigned char *p) {
 
 /* Create a new empty ziplist. */
 unsigned char *ziplistNew(void) {
+    /**
+     * zl
+     * |   4        4      2                    1
+     * <zlbytes><zltail><zllen><entry><entry><zlend>
+     *    11       10      0         |         255
+     *   zl+zltail |-----------------|
+     */
+    /**
+     * (sizeof(uint32_t)*2+sizeof(uint16_t)) +1 = 4 * 2 + 2 + 1 = 11
+     * 11 bytes
+     */
     unsigned int bytes = ZIPLIST_HEADER_SIZE+1;
     unsigned char *zl = zmalloc(bytes);
+    /**
+     * (*((uint32_t*)(zl))) = 11
+     * 4 bytes
+     * zlbytes = 11
+     */
     ZIPLIST_BYTES(zl) = intrev32ifbe(bytes);
+    /**
+     * (*((uint32_t*)((zl)+sizeof(uint32_t)))) = (sizeof(uint32_t)*2+sizeof(uint16_t))  = 10
+     * 4 byte
+     * zltail = 10
+     */
     ZIPLIST_TAIL_OFFSET(zl) = intrev32ifbe(ZIPLIST_HEADER_SIZE);
+    /**
+     * (*((uint16_t*)((zl)+sizeof(uint32_t)*2))) = 0
+     * 2 bytes
+     * zllen = 0
+     */
     ZIPLIST_LENGTH(zl) = 0;
+    /**
+     * zl[10] = 255
+     * 1 bytes
+     * zlend = 255
+     */
     zl[bytes-1] = ZIP_END;
     return zl;
 }
